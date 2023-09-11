@@ -1,0 +1,18 @@
+# this compose file is setup for dev/testing purposes
+# you should figure something else out for actual deployments
+version: "3"
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: fortunes
+      POSTGRES_USER: fortunes
+      POSTGRES_PASSWORD: fortunes
+      PG_USER: fortunes
+    ports:
+      - 127.0.0.1::5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fortunes"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
