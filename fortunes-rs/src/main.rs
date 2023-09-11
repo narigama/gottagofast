@@ -2,12 +2,18 @@ use std::str::FromStr;
 
 use axum::Json;
 use clap::Parser;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Parser)]
 pub struct Config {
     #[clap(long, env = "DATABASE_URL")]
     pub database_url: String,
+
+    #[clap(long, env = "DATABASE_POOL_MIN_SIZE", default_value = "1")]
+    pub database_pool_min_size: i64,
+
+    #[clap(long, env = "DATABASE_POOL_MAX_SIZE", default_value = "4")]
+    pub database_pool_max_size: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -67,10 +73,16 @@ async fn main() {
     dotenvy::dotenv().ok();
     let config = Config::parse();
 
+    // let db = sqlx::PgPool::connect(&config.database_url).await.unwrap();
+    let db = sqlx::postgres::PgPoolOptions::default()
+        .min_connections(config.database_pool_min_size as _)
+        .max_connections(config.database_pool_max_size as _)
+        .connect(&config.database_url)
+        .await
+        .unwrap();
+
     // setup app state, all items should be clone-able or wrapped in Arc
-    let state = State {
-        db: sqlx::PgPool::connect(&config.database_url).await.unwrap(),
-    };
+    let state = State { db };
 
     // build a router and attach endpoint and app state
     let addr = std::net::SocketAddr::from_str("127.0.0.1:8000").unwrap();
