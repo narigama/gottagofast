@@ -1,1 +1,12 @@
 .env*
+
+# Elixir shit
+fortunes-ex/_build/
+fortunes-ex/cover/
+fortunes-ex/deps/
+fortunes-ex/doc/
+fortunes-ex/.fetch
+erl_crash.dump
+*.ez
+fortunes-ex/tmp/
+fortunes-*.tar

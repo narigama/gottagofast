@@ -119,7 +119,7 @@ async fn main() {
     let state = State { db };
 
     // build a router and attach endpoint and app state
-    let addr = std::net::SocketAddr::from_str("127.0.0.1:8000").unwrap();
+    let addr = std::net::SocketAddr::from_str("127.0.0.1:8001").unwrap();
     let router = axum::Router::new()
         .route("/fortunes", axum::routing::post(fortunes))
         .layer(axum::Extension(state));
