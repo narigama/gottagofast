@@ -2,7 +2,9 @@ use std::str::FromStr;
 
 use axum::Json;
 use clap::Parser;
+use deadpool_postgres::PoolConfig;
 use serde::{Deserialize, Serialize};
+use tokio_postgres::{Connection, NoTls};
 
 #[derive(Debug, Parser)]
 pub struct Config {
@@ -18,10 +20,10 @@ pub struct Config {
 
 #[derive(Debug, Clone)]
 pub struct State {
-    pub db: sqlx::PgPool,
+    pub db: deadpool_postgres::Pool,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize)]
 pub struct Fortune {
     pub content: String,
 }
@@ -37,12 +39,18 @@ pub struct FortunesListResponse {
     pub items: Vec<Fortune>,
 }
 
-async fn get_fortunes(db: &mut sqlx::Transaction<'_, sqlx::Postgres>, count: i64) -> Vec<Fortune> {
-    sqlx::query_as::<_, Fortune>("SELECT content FROM fortune ORDER BY random() LIMIT $1")
-        .bind(count)
-        .fetch_all(&mut **db)
-        .await
-        .unwrap()
+async fn get_fortunes(db: &tokio_postgres::Transaction<'_>, count: i64) -> Vec<Fortune> {
+    let query = "SELECT content FROM fortune ORDER BY random() LIMIT $1";
+    let rows = db.query(query, &[&count]).await.unwrap();
+
+    let fortunes = rows
+        .iter()
+        .map(|row| Fortune {
+            content: row.get("content"),
+        })
+        .collect::<Vec<_>>();
+
+    fortunes
 }
 
 async fn fortunes(
@@ -50,10 +58,11 @@ async fn fortunes(
     request: Json<FortunesListRequest>,
 ) -> Json<FortunesListResponse> {
     // grab a connection from the pool and begin a transaction
-    let mut db = state.db.begin().await.unwrap();
+    let mut conn = state.db.get().await.unwrap();
+    let db = conn.transaction().await.unwrap();
 
     // grab stuff from the database
-    let items = get_fortunes(&mut db, request.quantity.unwrap_or(5)).await;
+    let items = get_fortunes(&db, request.quantity.unwrap_or(5)).await;
 
     // ensure you commit here, otherwise when `db` is dropped, it rolls back
     db.commit().await.unwrap();
@@ -64,6 +73,32 @@ async fn fortunes(
     })
 }
 
+async fn build_pool(config: &Config) -> deadpool_postgres::Pool {
+    let database_url = url::Url::parse(&config.database_url).unwrap();
+
+    let mut builder = deadpool_postgres::Config::new();
+    builder.manager = Some(deadpool_postgres::ManagerConfig {
+        recycling_method: deadpool_postgres::RecyclingMethod::Fast,
+    });
+
+    builder.pool = Some(PoolConfig {
+        max_size: config.database_pool_max_size as _,
+        ..Default::default()
+    });
+
+    builder.host = database_url.host_str().map(String::from);
+    builder.port = database_url.port().or(Some(5432));
+    builder.user = Some(database_url.username().into());
+    builder.password = database_url.password().map(String::from);
+    builder.dbname = Some(database_url.path().trim_start_matches('/').into());
+
+    dbg!(&builder);
+
+    builder
+        .create_pool(Some(deadpool_postgres::Runtime::Tokio1), NoTls)
+        .unwrap()
+}
+
 #[tokio::main]
 async fn main() {
     // load .env and parse into Config
@@ -71,13 +106,14 @@ async fn main() {
     let config = Config::parse();
     tracing_subscriber::fmt::init();
 
-    // let db = sqlx::PgPool::connect(&config.database_url).await.unwrap();
-    let db = sqlx::postgres::PgPoolOptions::default()
-        .min_connections(config.database_pool_min_size as _)
-        .max_connections(config.database_pool_max_size as _)
-        .connect(&config.database_url)
-        .await
-        .unwrap();
+    // let db = sqlx::postgres::PgPoolOptions::default()
+    //     .min_connections(config.database_pool_min_size as _)
+    //     .max_connections(config.database_pool_max_size as _)
+    //     .connect(&config.database_url)
+    //     .await
+    //     .unwrap();
+
+    let db = build_pool(&config).await;
 
     // setup app state, all items should be clone-able or wrapped in Arc
     let state = State { db };
