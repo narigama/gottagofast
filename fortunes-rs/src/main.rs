@@ -21,7 +21,7 @@ pub struct State {
     pub db: sqlx::PgPool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct Fortune {
     pub content: String,
 }
@@ -38,14 +38,11 @@ pub struct FortunesListResponse {
 }
 
 async fn get_fortunes(db: &mut sqlx::Transaction<'_, sqlx::Postgres>, count: i64) -> Vec<Fortune> {
-    sqlx::query_as!(
-        Fortune,
-        "SELECT content FROM fortune ORDER BY random() LIMIT $1",
-        count
-    )
-    .fetch_all(&mut **db)
-    .await
-    .unwrap()
+    sqlx::query_as::<_, Fortune>("SELECT content FROM fortune ORDER BY random() LIMIT $1")
+        .bind(count)
+        .fetch_all(&mut **db)
+        .await
+        .unwrap()
 }
 
 async fn fortunes(
@@ -72,6 +69,7 @@ async fn main() {
     // load .env and parse into Config
     dotenvy::dotenv().ok();
     let config = Config::parse();
+    tracing_subscriber::fmt::init();
 
     // let db = sqlx::PgPool::connect(&config.database_url).await.unwrap();
     let db = sqlx::postgres::PgPoolOptions::default()
