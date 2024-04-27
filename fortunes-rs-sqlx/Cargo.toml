@@ -15,13 +15,11 @@ tokio = { version = "1.32.0", features = ["full"] }
 # logging
 tracing            = { version = "0.1.37", features = ["log"] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-tracing-error = "0.2.0"
+tracing-error      = "0.2.0"
 
 # error handling
 thiserror  = { version = "1.0.48" }
 color-eyre = { version = "0.6.2" }
 
 # database
-url               = { version = "2.4.1" }
-tokio-postgres    = { version = "0.7.10" }
-deadpool-postgres = { version = "0.10.5" }
+sqlx = { version = "0.7.4", features = ["runtime-tokio-rustls", "json", "postgres"] }

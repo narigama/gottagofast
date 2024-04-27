@@ -72,29 +72,20 @@ pub struct FortunesListResponse {
 }
 
 async fn build_pool(config: &Config) -> eyre::Result<deadpool_postgres::Pool> {
-    let database_url = url::Url::from_str(&config.database_url)?;
-
-    let mut builder = deadpool_postgres::Config::new();
-    builder.application_name = Some(String::from("gottagofast"));
-    builder.manager = Some(deadpool_postgres::ManagerConfig {
-        recycling_method: deadpool_postgres::RecyclingMethod::Fast,
-    });
-
-    builder.pool = Some(deadpool_postgres::PoolConfig {
-        max_size: config.database_pool_max_size as _,
+    let pool = deadpool_postgres::Config {
+        url: Some(config.database_url.clone()),
+        application_name: Some(format!("gottagofast_v{}", env!("CARGO_PKG_VERSION"))),
+        manager: Some(deadpool_postgres::ManagerConfig {
+            recycling_method: deadpool_postgres::RecyclingMethod::Fast,
+        }),
         ..Default::default()
-    });
-
-    builder.dbname = Some(database_url.path().trim_start_matches('/').into());
-    builder.host = database_url.host_str().map(String::from);
-    builder.port = database_url.port().or(Some(5432));
-    builder.user = Some(database_url.username().into());
-    builder.password = database_url.password().map(String::from);
-
-    Ok(builder.create_pool(
+    }
+    .create_pool(
         Some(deadpool_postgres::Runtime::Tokio1),
         tokio_postgres::NoTls,
-    )?)
+    )?;
+
+    Ok(pool)
 }
 
 async fn get_fortunes(db: &Transaction<'_>, count: i64) -> eyre::Result<Vec<Fortune>> {
