@@ -1,6 +1,5 @@
 # this compose file is setup for dev/testing purposes
 # you should figure something else out for actual deployments
-version: "3"
 services:
   postgres:
     image: postgres:15-alpine
