@@ -5,7 +5,7 @@ use color_eyre::eyre;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use sqlx::{Executor, PgExecutor, Postgres, Transaction};
+use sqlx::{Postgres, Transaction};
 
 #[derive(Debug, Serialize)]
 pub struct ErrorResponse {

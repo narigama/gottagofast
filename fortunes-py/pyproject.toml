@@ -1,21 +1,25 @@
-[tool.poetry]
-name = "fortunes-py"
-version = "0.1.0"
-description = ""
-authors = ["David Smith <david@narigama.dev>"]
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "*"
-asyncpg = "*"
-uvicorn = "*"
-pydantic-settings = "*"
-
-
-[tool.poetry.group.dev.dependencies]
-ipython = "*"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires      = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name            = "fortunes-py"
+version         = "0.1.0"
+description     = "Add your description here"
+readme          = "README.md"
+requires-python = ">=3.12"
+authors         = [
+    { name = "David Smith", email = "david@narigama.dev" }
+]
+dependencies    = [
+    "fastapi",
+    "asyncpg",
+    "uvicorn",
+    "pydantic-settings",
+]
+
+[dependency-groups]
+dev = [
+    "ipython>=8.31.0",
+    "ruff>=0.9.2",
+]

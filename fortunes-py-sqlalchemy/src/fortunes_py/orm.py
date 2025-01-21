@@ -14,7 +14,7 @@ from sqlalchemy.orm import mapped_column
 
 def get_engine(database_url: str, pool_size: int) -> AsyncEngine:
     return create_async_engine(
-        str(database_url).replace("postgres://", "postgresql+asyncpg://"),
+        str(database_url).replace("postgres://", "postgresql+asyncpg://").replace("?sslmode=disable", ""),
         pool_size=pool_size,
         pool_recycle=3600,
     )

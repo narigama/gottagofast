@@ -97,7 +97,11 @@ async def fortunes(
 
 @contextlib.asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):
-    app.state.database_engine = get_engine(str(app.state.config.database_url))
+    app.state.database_engine = get_engine(
+        str(app.state.config.database_url)
+        .replace("postgres://", "postgresql+asyncpg://")
+        .replace("?sslmode=disable", "")
+    )
     yield
     # await app.state.database_pool.close()
 

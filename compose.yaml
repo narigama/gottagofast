@@ -16,6 +16,15 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-migrations:
+    image: amacneil/dbmate
+    command: --wait --no-dump-schema -u postgres://fortunes:fortunes@postgres:5432/fortunes?sslmode=disable up 
+    volumes:
+      - ./db:/db:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # pgbouncer:
   #   image: bitnami/pgbouncer
   #   links:

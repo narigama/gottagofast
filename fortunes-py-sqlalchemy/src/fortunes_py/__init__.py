@@ -56,10 +56,9 @@ class FortuneListResponse(Model):
 
 
 async def get_fortunes(session: sqlalchemy.ext.asyncio.AsyncSession, n: int) -> list[Fortune]:
-    return [
-        Fortune(content=row.content)
-        for row in await session.scalars(sqlalchemy.select(orm.Fortune).order_by(sqlalchemy.text("random()")).limit(n))
-    ]
+    query = sqlalchemy.select(orm.Fortune).order_by(sqlalchemy.text("random()")).limit(n)
+    rows = await session.scalars(query)
+    return [Fortune(content=row.content) for row in rows]
 
 
 async def fortunes(
